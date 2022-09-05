@@ -9,7 +9,7 @@ the cli will take 3 (or more) sub commands
 #[clap(author, version, about)]
 pub struct Zeus {
     #[clap(subcommand)]
-    pub sub_command: ZeusSubCommands,
+    pub action: ZeusSubCommands,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -36,32 +36,23 @@ pub struct AuthCommands {
 #[derive(clap::Subcommand, Debug)]
 pub enum AuthSubCommands {
     ///takes in username, and password, creates a new user
-    Register(AuthSignUp),
+    Register(User),
     /// takes in username and password, logs a user in to the zeus organization
-    Login(AuthLogin),
+    Login(User),
 }
 
 //implementation of the sigh up sub commands
 #[derive(Args, Debug)]
-pub struct AuthSignUp {
+pub struct User {
     /// the username
-    #[clap(short, long, value_parser, forbid_empty_values = true)]
+    #[clap(short, long, value_parser,/*  forbid_empty_values = true */)]
     pub username: String,
     /// the user password
-    #[clap(short, long, value_parser, forbid_empty_values = true)]
+    #[clap(short, long, value_parser,/*  forbid_empty_values = true */)]
     pub password: String,
 }
 
-//implementation of the login commands
-#[derive(Args, Debug)]
-pub struct AuthLogin {
-    /// the username
-    #[clap(short, long, value_parser, forbid_empty_values = true)]
-    pub username: String,
-    /// the user password
-    #[clap(short, long, value_parser, forbid_empty_values = true)]
-    pub password: String,
-}
+
 
 #[derive(Args, Debug)]
 pub struct ChatCommands {
