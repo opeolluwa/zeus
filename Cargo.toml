@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bcrypt = "0.13.0"
 clap = { version = "3.2.20", features = ["derive"] }
+console = "0.15.1"
 dialoguer = "0.10.2"
 dotenv = "0.15.0"
 futures = "0.3.24"
