@@ -1,17 +1,16 @@
 use clap::{Args, Parser, Subcommand};
 /*
- the cli will take 3 (or more) sub commands
-  - auth - to authorize user login and sigh up
-  - config - to configure a user interface
-  - chat - to create a chat id or connect to one
- */
+the cli will take 3 (or more) sub commands
+ - auth - to authorize user login and sigh up
+ - config - to configure a user interface
+ - chat - to create a chat id or connect to one
+*/
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
 pub struct Zeus {
     #[clap(subcommand)]
-    pub command: ZeusSubCommands,
+    pub sub_command: ZeusSubCommands,
 }
-
 
 #[derive(clap::Subcommand, Debug)]
 pub enum ZeusSubCommands {
@@ -67,39 +66,39 @@ pub struct AuthLogin {
 #[derive(Args, Debug)]
 pub struct ChatCommands {
     #[clap(subcommand)]
-    chat_sub_commands: ChatSubCommands
+    chat_sub_commands: ChatSubCommands,
 }
 
 //chat sub commands
 #[derive(Subcommand, Debug)]
-pub enum ChatSubCommands{
+pub enum ChatSubCommands {
     ///generate a chat id for others to join
     BeginChatCommand(BeginChat),
-    ///join a chat via id 
+    ///join a chat via id
     JoinChatCommand(JoinChat),
     /// send chat invitation via email
-    SendChatInvitation(SendChatInvitation)
+    SendChatInvitation(SendChatInvitation),
 }
 
 // begin chat
 #[derive(Args, Debug)]
-pub struct  BeginChat{
-    pub chat_id:String,
+pub struct BeginChat {
+    pub chat_id: String,
 }
 
 // begin chat
 #[derive(Args, Debug)]
-pub struct  JoinChat{
+pub struct JoinChat {
     //TODO: #[derive(serde(rename="chatId"))]
-    /// the chat id 
-    pub chat_id:String,
+    /// the chat id
+    pub chat_id: String,
 }
 
 ///share chat invitaion via email
 #[derive(Args, Debug)]
-pub struct  SendChatInvitation{
-    /// the chat id 
-    pub chat_id:String,
+pub struct SendChatInvitation {
+    /// the chat id
+    pub chat_id: String,
 }
 //config commands
 #[derive(Args, Debug)]

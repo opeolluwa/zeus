@@ -6,6 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bcrypt = "0.13.0"
 clap = { version = "3.2.20", features = ["derive"] }
+dialoguer = "0.10.2"
+dotenv = "0.15.0"
+jsonwebtoken = "8.1.1"
+mongodb = "2.3.0"
 rustyline = "10.0.0"
 serde = { version = "1.0.144", features = ["derive"] }
+tokio = { version = "1.21.0", features = ["full"] }
