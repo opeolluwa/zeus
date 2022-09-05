@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand};
+use serde::{Deserialize, Serialize};
 /*
 the cli will take 3 (or more) sub commands
  - auth - to authorize user login and sigh up
@@ -9,7 +10,7 @@ the cli will take 3 (or more) sub commands
 #[clap(author, version, about)]
 pub struct Zeus {
     #[clap(subcommand)]
-    pub action: ZeusSubCommands,
+    pub command: ZeusSubCommands,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -36,39 +37,35 @@ pub struct AuthCommands {
 #[derive(clap::Subcommand, Debug)]
 pub enum AuthSubCommands {
     ///takes in username, and password, creates a new user
-    Register(User),
+    SignUp,
     /// takes in username and password, logs a user in to the zeus organization
-    Login(User),
+    Login,
 }
 
 //implementation of the sigh up sub commands
-#[derive(Args, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct User {
     /// the username
-    #[clap(short, long, value_parser,/*  forbid_empty_values = true */)]
     pub username: String,
     /// the user password
-    #[clap(short, long, value_parser,/*  forbid_empty_values = true */)]
     pub password: String,
 }
-
-
 
 #[derive(Args, Debug)]
 pub struct ChatCommands {
     #[clap(subcommand)]
-    chat_sub_commands: ChatSubCommands,
+    pub chat_sub_commands: ChatSubCommands,
 }
 
 //chat sub commands
 #[derive(Subcommand, Debug)]
 pub enum ChatSubCommands {
     ///generate a chat id for others to join
-    BeginChatCommand(BeginChat),
+    BeginChat,
     ///join a chat via id
-    JoinChatCommand(JoinChat),
+    JoinChat,
     /// send chat invitation via email
-    SendChatInvitation(SendChatInvitation),
+    SendChatInvitation,
 }
 
 // begin chat

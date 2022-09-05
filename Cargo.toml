@@ -10,6 +10,7 @@ bcrypt = "0.13.0"
 clap = { version = "3.2.20", features = ["derive"] }
 dialoguer = "0.10.2"
 dotenv = "0.15.0"
+futures = "0.3.24"
 jsonwebtoken = "8.1.1"
 mongodb = "2.3.0"
 rustyline = "10.0.0"
