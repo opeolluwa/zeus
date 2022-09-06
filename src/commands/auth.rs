@@ -48,19 +48,16 @@ async fn login() {
         //check for correctness of the pasword
         let is_correct_password = verify(&password, &hashed_password);
         match is_correct_password {
-            Ok(_) => println!(
-                "
-                
-                {} {}",
-                style("successfully logged in as").green(),
-                &username
-            ),
-            Err(_) => println!("{} {}", style("incorrect password for ").red(), &username),
+            Ok(correct_password) => {
+                //destruct password 
+               if correct_password == false{
+                println!("{} {}", style("incorrect password for ").red(), &username);
+                return;
+               }
+            }
+            Err(err) => println!("{} {}", style("incorrect password for ").red(), &err),
         }
-        println!(
-            " username {}, password {:?}, hash {}",
-            username, password, &hashed_password
-        );
+        println!("correct password continue exec");
     } else {
         //if no user was found return 404 error
         println!(
