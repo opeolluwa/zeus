@@ -98,8 +98,8 @@ async fn login() {
                     } else if input.trim() == ".break" {
                         break;
                     } else if input.trim() == ".editor" {
+                        println!("Entered editor mode\n{}", style(chat_guide).cyan());
                         loop {
-                            println!("Entered editor mode\n{}", style(chat_guide).cyan());
                             let mut repl = rustyline::Editor::<()>::new().unwrap();
                             let prompt = style(">> ").cyan().to_string();
                             let readline = repl.readline(&prompt);
@@ -107,7 +107,7 @@ async fn login() {
                                 Ok(message) => println!("you entered {}", message),
                                 Err(_) => {
                                     println!("an error occurred");
-                                    break ;
+                                    break;
                                 }
                             }
                         }
