@@ -77,6 +77,14 @@ async fn login() {
 .exit     Exit the REPL
 .help     Print this help message
         "#;
+
+        //chat guide
+        let chat_guide = r#"
+\b           begin chat
+\i <email>   invite a friend via chat
+\e           end conversation
+\j <id>      join a chat via id
+        "#;
         // println!("{}", &help_information);
         // define the repl of the chat
         loop {
@@ -90,9 +98,26 @@ async fn login() {
                     } else if input.trim() == ".break" {
                         break;
                     } else if input.trim() == ".editor" {
-                        println!("enter chat mode")
+                        loop {
+                            println!("Entered editor mode\n{}", style(chat_guide).cyan());
+                            let mut repl = rustyline::Editor::<()>::new().unwrap();
+                            let prompt = style(">> ").cyan().to_string();
+                            let readline = repl.readline(&prompt);
+                            match readline {
+                                Ok(message) => println!("you entered {}", message),
+                                Err(_) => {
+                                    println!("an error occurred");
+                                    break ;
+                                }
+                            }
+                        }
                     } else if input.trim() == ".exit" {
                         break;
+                    } else {
+                        println!(
+                            "{}\nType \".help\" for more information",
+                            style("Invalid input.").red()
+                        );
                     }
                 }
                 Err(ReadlineError::Interrupted) => {
