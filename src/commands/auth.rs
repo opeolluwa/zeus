@@ -4,6 +4,8 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use mongodb::bson::doc;
+use rustyline::error::ReadlineError;
+// use rustyline::{Editor, Result};
 
 pub async fn handle_authorization(auth_command: AuthCommands) {
     //destructure the sub command
@@ -49,22 +51,70 @@ async fn login() {
         let is_correct_password = verify(&password, &hashed_password);
         match is_correct_password {
             Ok(correct_password) => {
-                //destruct password 
-               if correct_password == false{
-                println!("{} {}", style("incorrect password for ").red(), &username);
-                return;
-               }
+                //destruct password
+                if !correct_password {
+                    println!("{} {}", style("Incorrect Password for ").red(), &username);
+                    return;
+                }
             }
-            Err(err) => println!("{} {}", style("incorrect password for ").red(), &err),
+            //inform the user of the error
+            Err(_) => {
+                println!("{} {}", style("Error authorizing",).red(), &username);
+                return;
+            }
         }
-        println!("correct password continue exec");
+
+        //in the password is correct, begin the chat
+        println!(
+            "Successfully logged in as {}\nType \".help\" for more information.\n",
+            &username,
+        );
+
+        //the help information
+        let help_information = r#"
+.clear    Clear the current input
+.editor   Enter editor mode
+.exit     Exit the REPL
+.help     Print this help message
+        "#;
+        // println!("{}", &help_information);
+        // define the repl of the chat
+        loop {
+            let mut repl = rustyline::Editor::<()>::new().unwrap();
+            let readline = repl.readline(">> ");
+            //check the user input
+            match readline {
+                Ok(input) => {
+                    if input.trim() == ".help" {
+                        println!("{}", &help_information);
+                    } else if input.trim() == ".break" {
+                        break;
+                    } else if input.trim() == ".editor" {
+                        println!("enter chat mode")
+                    } else if input.trim() == ".exit" {
+                        break;
+                    }
+                }
+                Err(ReadlineError::Interrupted) => {
+                    println!("CTRL-C");
+                    break;
+                }
+                Err(ReadlineError::Eof) => {
+                    println!("CTRL-D");
+                    break;
+                }
+                Err(err) => {
+                    println!("An unexpected error occurred{:?}", err);
+                    break;
+                }
+            }
+        }
     } else {
         //if no user was found return 404 error
         println!(
             "{}",
             style("User with provided credentials not found").red()
         );
-        return;
     };
 
     //generate jwt fo for the user
@@ -84,18 +134,17 @@ pub async fn sign_up() {
     let database = config::database::mongodb().await;
     let collection = database.collection::<User>("user_information");
 
-    //see if user already exists
+    //TODO: see if user already exists
     let user_already_exists = collection
         .find_one(doc! {"username:":&username}, None)
         .await
         .unwrap();
 
-    if let Some(_) = user_already_exists {
+    if user_already_exists.is_some() {
         println!(
             "{}",
             style("A user with the provided name already exist").red()
         );
-        return;
     } else {
         //create a new user
         let hashed_password =

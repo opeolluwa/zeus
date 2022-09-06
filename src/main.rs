@@ -1,9 +1,9 @@
 use clap::Parser;
-use dotenv;
 use shell::{Zeus, ZeusSubCommands};
 //import modules
 mod commands;
 mod config;
+mod modules;
 mod shell;
 
 #[tokio::main]
