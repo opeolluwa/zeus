@@ -4,6 +4,7 @@
         "bson",
         "dialoguer",
         "readline",
+        "reqwest",
         "rustyline"
     ]
 }

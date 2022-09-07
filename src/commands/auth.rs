@@ -1,3 +1,4 @@
+use crate::modules::api_response::{LoginResponse, SeverResponse};
 use crate::shell::{AuthSubCommands, User};
 use crate::{config, shell::AuthCommands};
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -5,6 +6,7 @@ use console::style;
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use mongodb::bson::doc;
 use rustyline::error::ReadlineError;
+use serde_json::json;
 // use rustyline::{Editor, Result};
 
 pub async fn handle_authorization(auth_command: AuthCommands) {
@@ -20,12 +22,70 @@ pub async fn handle_authorization(auth_command: AuthCommands) {
 
 ///accept username and password from cli and log in a user
 async fn login() {
-    //assign value
+    //assign value read from the REPL to username and password fields
     let username: String = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Username: ")
         .interact_text()
         .unwrap();
 
+    let password: String = Password::with_theme(&ColorfulTheme::default())
+        .with_prompt("Password: ")
+        .interact()
+        .unwrap();
+
+    //make request to the zeus server to login the user
+    let zeus_server_response = reqwest::Client::new()
+        .post(
+            std::env::var("ZEUS_SERVER_URL")
+                .unwrap_or_else(|_| String::from("http://127.0.0.1:8052/v1/auth/login")),
+        )
+        .header("CONTENT_TYPE", "application/json")
+        .header("ACCEPT", "application/json")
+        .json(&json!({
+        "username":&username,
+        "password":&password
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    //work with the server response
+    match zeus_server_response.status() {
+        //if user is not found
+        reqwest::StatusCode::NOT_FOUND => {
+            println!(
+                "{} {} {}",
+                style("No account associated with").red(),
+                &username,
+                style("was found").red()
+            )
+        }
+        //if incorrect password
+        reqwest::StatusCode::UNAUTHORIZED => {
+            println!("{} {}", style("Incorrect Password for ").red(), &username)
+        }
+        //if the response is ok, get the content
+        reqwest::StatusCode::OK => {
+            match zeus_server_response
+                .json::<SeverResponse<LoginResponse>>()
+                .await
+            {
+                Ok(user) => println!("{:?}", user),
+                Err(_) => println!(
+                    "{}",
+                    style("An unexpected error occurred, please retry").cyan()
+                ),
+            }
+        }
+        //if other errors
+        _ => println!(
+            "{}",
+            style("An unexpected error occurred, please retry").cyan()
+        ),
+    };
+    /*   println!("the server response is {:#?}", &zeus_server_response);
+    let res = zeus_server_response.unwrap().text().await;
+    println!("{:?}", res); */
     //connect to database, check if user details is valid
     let database = config::database::mongodb().await;
     let collection = database.collection::<User>("user_information");
@@ -85,9 +145,8 @@ async fn login() {
 \e           end conversation
 \j <id>      join a chat via id
         "#;
-        // println!("{}", &help_information);
-        // define the repl of the chat
-        loop {
+
+        'outer: loop {
             let mut repl = rustyline::Editor::<()>::new().unwrap();
             let readline = repl.readline(">> ");
             //check the user input
@@ -96,10 +155,10 @@ async fn login() {
                     if input.trim() == ".help" {
                         println!("{}", &help_information);
                     } else if input.trim() == ".break" {
-                        break;
+                        break 'outer;
                     } else if input.trim() == ".editor" {
                         println!("Entered editor mode\n{}", style(chat_guide).cyan());
-                        loop {
+                        'inner: loop {
                             let mut repl = rustyline::Editor::<()>::new().unwrap();
                             let prompt = style(">> ").cyan().to_string();
                             let readline = repl.readline(&prompt);
@@ -107,7 +166,7 @@ async fn login() {
                                 Ok(message) => println!("you entered {}", message),
                                 Err(_) => {
                                     println!("an error occurred");
-                                    break;
+                                    break 'inner;
                                 }
                             }
                         }

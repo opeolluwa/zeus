@@ -1,5 +1,6 @@
 use clap::Parser;
 use shell::{Zeus, ZeusSubCommands};
+
 //import modules
 mod commands;
 mod config;
@@ -8,9 +9,6 @@ mod shell;
 
 #[tokio::main]
 async fn main() {
-    //configure env
-    dotenv::dotenv().unwrap();
-
     //destructure the sub command type from the parse
     let Zeus { command } = Zeus::parse();
     match command {
