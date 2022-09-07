@@ -1,13 +1,30 @@
 use crate::modules::api_response::{LoginResponse, SeverResponse};
 use crate::shell::{AuthSubCommands, User};
 use crate::{config, shell::AuthCommands};
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt::{hash, DEFAULT_COST};
 use console::style;
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use mongodb::bson::doc;
 use rustyline::error::ReadlineError;
 use serde_json::json;
+use std::fs::File;
+use std::io::prelude::*;
 // use rustyline::{Editor, Result};
+
+const HELP_INFORMATION: &str = r#"
+.clear    Clear the current input
+.editor   Enter editor mode
+.exit     Exit the REPL
+.help     Print this help message
+"#;
+
+//chat guide
+const CHAT_GUIDE: &str = r#"
+\b           begin chat
+\e           end conversation
+\j <id>      join a chat via id
+\i <email>   invite a friend via chat
+"#;
 
 pub async fn handle_authorization(auth_command: AuthCommands) {
     //destructure the sub command
@@ -55,14 +72,18 @@ async fn login() {
         reqwest::StatusCode::NOT_FOUND => {
             println!(
                 "{} {} {}",
-                style("No account associated with").red(),
+                style("No account associated with").red().bright(),
                 &username,
-                style("was found").red()
+                style("was found").red().bright()
             )
         }
         //if incorrect password
         reqwest::StatusCode::UNAUTHORIZED => {
-            println!("{} {}", style("Incorrect Password for ").red(), &username)
+            println!(
+                "{} {}",
+                style("Incorrect Password for").red().bright(),
+                &username
+            )
         }
         //if the response is ok, get the content
         reqwest::StatusCode::OK => {
@@ -70,7 +91,65 @@ async fn login() {
                 .json::<SeverResponse<LoginResponse>>()
                 .await
             {
-                Ok(user) => println!("{:?}", user),
+                Ok(svr_response) => {
+                    //in the password is correct, begin the chat
+                    println!(
+                        "Successfully logged in as {}\nType \".help\" for more information.\n",
+                        &username,
+                    );
+                    if let Some(data) = svr_response.data {
+                        let mut file = File::create("zeus.conf").unwrap();
+                        file.write_all(data.token.as_bytes()).unwrap();
+                    }
+
+                    //the help information
+                    'outer: loop {
+                        let mut repl = rustyline::Editor::<()>::new().unwrap();
+                        let readline = repl.readline(">> ");
+                        //check the user input
+                        match readline {
+                            Ok(input) => {
+                                if input.trim() == ".help" {
+                                    println!("{}", &HELP_INFORMATION);
+                                } else if input.trim() == ".break" {
+                                    break 'outer;
+                                } else if input.trim() == ".editor" {
+                                    println!("Entered editor mode\n{}", style(CHAT_GUIDE).cyan());
+                                    'inner: loop {
+                                        let mut repl = rustyline::Editor::<()>::new().unwrap();
+                                        let prompt = style(">> ").cyan().to_string();
+                                        let readline = repl.readline(&prompt);
+                                        match readline {
+                                            Ok(message) => println!("you entered {}", message),
+                                            Err(_) => {
+                                                println!("an error occurred");
+                                                break 'inner;
+                                            }
+                                        }
+                                    }
+                                } else if input.trim() == ".exit" {
+                                    break 'outer;
+                                } else {
+                                    println!(
+                                        "{}\nType \".help\" for more information",
+                                        style("Invalid input.").red()
+                                    );
+                                }
+                            }
+                            Err(ReadlineError::Interrupted) => {
+                                break 'outer;
+                            }
+                            Err(ReadlineError::Eof) => {
+                                break 'outer;
+                            }
+                            Err(err) => {
+                                println!("An unexpected error occurred{:?}", err);
+                                break 'outer;
+                            }
+                        }
+                    }
+                }
+
                 Err(_) => println!(
                     "{}",
                     style("An unexpected error occurred, please retry").cyan()
@@ -83,124 +162,6 @@ async fn login() {
             style("An unexpected error occurred, please retry").cyan()
         ),
     };
-    /*   println!("the server response is {:#?}", &zeus_server_response);
-    let res = zeus_server_response.unwrap().text().await;
-    println!("{:?}", res); */
-    //connect to database, check if user details is valid
-    let database = config::database::mongodb().await;
-    let collection = database.collection::<User>("user_information");
-
-    let result = collection
-        .find_one(doc! { "username": &username }, None)
-        .await
-        .unwrap();
-
-    //try to destructure the found object, then ask for password
-    if let Some(User {
-        username,
-        password: hashed_password,
-        ..
-    }) = result
-    {
-        let password: String = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt("Password: ")
-            .interact()
-            .unwrap();
-
-        //check for correctness of the pasword
-        let is_correct_password = verify(&password, &hashed_password);
-        match is_correct_password {
-            Ok(correct_password) => {
-                //destruct password
-                if !correct_password {
-                    println!("{} {}", style("Incorrect Password for ").red(), &username);
-                    return;
-                }
-            }
-            //inform the user of the error
-            Err(_) => {
-                println!("{} {}", style("Error authorizing",).red(), &username);
-                return;
-            }
-        }
-
-        //in the password is correct, begin the chat
-        println!(
-            "Successfully logged in as {}\nType \".help\" for more information.\n",
-            &username,
-        );
-
-        //the help information
-        let help_information = r#"
-.clear    Clear the current input
-.editor   Enter editor mode
-.exit     Exit the REPL
-.help     Print this help message
-        "#;
-
-        //chat guide
-        let chat_guide = r#"
-\b           begin chat
-\i <email>   invite a friend via chat
-\e           end conversation
-\j <id>      join a chat via id
-        "#;
-
-        'outer: loop {
-            let mut repl = rustyline::Editor::<()>::new().unwrap();
-            let readline = repl.readline(">> ");
-            //check the user input
-            match readline {
-                Ok(input) => {
-                    if input.trim() == ".help" {
-                        println!("{}", &help_information);
-                    } else if input.trim() == ".break" {
-                        break 'outer;
-                    } else if input.trim() == ".editor" {
-                        println!("Entered editor mode\n{}", style(chat_guide).cyan());
-                        'inner: loop {
-                            let mut repl = rustyline::Editor::<()>::new().unwrap();
-                            let prompt = style(">> ").cyan().to_string();
-                            let readline = repl.readline(&prompt);
-                            match readline {
-                                Ok(message) => println!("you entered {}", message),
-                                Err(_) => {
-                                    println!("an error occurred");
-                                    break 'inner;
-                                }
-                            }
-                        }
-                    } else if input.trim() == ".exit" {
-                        break;
-                    } else {
-                        println!(
-                            "{}\nType \".help\" for more information",
-                            style("Invalid input.").red()
-                        );
-                    }
-                }
-                Err(ReadlineError::Interrupted) => {
-                    println!("CTRL-C");
-                    break;
-                }
-                Err(ReadlineError::Eof) => {
-                    println!("CTRL-D");
-                    break;
-                }
-                Err(err) => {
-                    println!("An unexpected error occurred{:?}", err);
-                    break;
-                }
-            }
-        }
-    } else {
-        //if no user was found return 404 error
-        println!(
-            "{}",
-            style("User with provided credentials not found").red()
-        );
-    };
-
     //generate jwt fo for the user
 }
 

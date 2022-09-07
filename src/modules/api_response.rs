@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SeverResponse<T> {
     pub success: bool,
-    message: String,
-    data: Option<T>,
+    pub message: String,
+    pub data: Option<T>,
 }
 
 ///Login data structure
