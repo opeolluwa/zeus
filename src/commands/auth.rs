@@ -26,6 +26,10 @@ const CHAT_GUIDE: &str = r#"
 \i <email>   invite a friend via chat
 "#;
 
+//the zeus server url
+const ZEUS_SEVER: &str = "http://127.0.0.1:8052/v1/auth/login";
+
+
 pub async fn handle_authorization(auth_command: AuthCommands) {
     //destructure the sub command
     let AuthCommands { auth_sub_commands } = auth_command;
@@ -52,10 +56,7 @@ async fn login() {
 
     //make request to the zeus server to login the user
     let zeus_server_response = reqwest::Client::new()
-        .post(
-            std::env::var("ZEUS_SERVER_URL")
-                .unwrap_or_else(|_| String::from("http://127.0.0.1:8052/v1/auth/login")),
-        )
+        .post(ZEUS_SEVER)
         .header("CONTENT_TYPE", "application/json")
         .header("ACCEPT", "application/json")
         .json(&json!({
@@ -115,15 +116,14 @@ async fn login() {
                                     break 'outer;
                                 } else if input.trim() == ".editor" {
                                     println!("Entered editor mode\n{}", style(CHAT_GUIDE).cyan());
-                                    'inner: loop {
+                                     loop {
                                         let mut repl = rustyline::Editor::<()>::new().unwrap();
                                         let prompt = style(">> ").cyan().to_string();
                                         let readline = repl.readline(&prompt);
                                         match readline {
                                             Ok(message) => println!("you entered {}", message),
                                             Err(_) => {
-                                                println!("an error occurred");
-                                                break 'inner;
+                                                break 'outer;
                                             }
                                         }
                                     }
